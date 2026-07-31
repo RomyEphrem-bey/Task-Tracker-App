@@ -132,3 +132,153 @@ def test_patch_invalid_transition_inprogress_to_todo_returns_422(
 
     body = response.json()
     assert "Invalid status transition" in body["detail"]
+
+#create task with tags
+def test_create_task_with_tags(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Test login API",
+            "tags": ["Backend", "Regression"],
+        },
+    )
+
+    assert response.status_code == 201
+
+    data = response.json()
+    assert data["tags"] == ["Backend", "Regression"]
+
+#create task without tags:
+def test_create_task_without_tags(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Update test notes",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["tags"] == []
+
+#Trim Tag Values
+def test_create_task_trims_tags(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Test login API",
+            "tags": ["  Backend  ", " Regression "],
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["tags"] == ["Backend", "Regression"]
+
+#reject a whitespace only tag:
+def test_create_task_rejects_blank_tag(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Test login API",
+            "tags": ["   "],
+        },
+    )
+
+    assert response.status_code == 422
+
+#update only the tags: 
+def test_update_only_tags_preserves_other_fields(client):
+    create_response = client.post(
+        "/tasks",
+        json={
+            "title": "Test login API",
+            "description": "Check valid login",
+            "priority": "High",
+            "tags": ["Backend"],
+        },
+    )
+
+    created_task = create_response.json()
+
+    update_response = client.patch(
+        f"/tasks/{created_task['id']}",
+        json={
+            "tags": ["Regression"],
+        },
+    )
+
+    assert update_response.status_code == 200
+
+    updated_task = update_response.json()
+    assert updated_task["tags"] == ["Regression"]
+    assert updated_task["title"] == "Test login API"
+    assert updated_task["description"] == "Check valid login"
+    assert updated_task["priority"] == "High"
+
+#remove All tags:
+def test_remove_all_tags(client):
+    create_response = client.post(
+        "/tasks",
+        json={
+            "title": "Test login API",
+            "tags": ["Backend", "Regression"],
+        },
+    )
+
+    task_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/tasks/{task_id}",
+        json={
+            "tags": [],
+        },
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["tags"] == []
+
+#adding 3 tests to validate the tag filter
+def test_list_tasks_filters_by_tag(client: TestClient):
+    client.post(
+        "/tasks",
+        json={"title": "Backend task", "tags": ["Backend"]},
+    )
+    client.post(
+        "/tasks",
+        json={"title": "Frontend task", "tags": ["Frontend"]},
+    )
+
+    response = client.get("/tasks?tag=Backend")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["title"] == "Backend task"
+
+def test_list_tasks_tag_filter_no_matches_returns_empty_list(
+    client: TestClient,
+):
+    client.post(
+        "/tasks",
+        json={"title": "Backend task", "tags": ["Backend"]},
+    )
+
+    response = client.get("/tasks?tag=Mobile")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+def test_list_tasks_without_tag_filter_returns_all_tasks(
+    client: TestClient,
+):
+    client.post(
+        "/tasks",
+        json={"title": "Backend task", "tags": ["Backend"]},
+    )
+    client.post(
+        "/tasks",
+        json={"title": "Frontend task", "tags": ["Frontend"]},
+    )
+
+    response = client.get("/tasks")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 2

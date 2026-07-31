@@ -2,40 +2,49 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
-from app.models import TaskCreate, TaskResponse, TaskUpdate
+from app.models import TaskCreate, TaskResponse, TaskStatus, TaskUpdate
 
 
 _tasks: dict[str, TaskResponse] = {}
+
+#updated to include tags on add_task and update_task methods
 
 def add_task(payload: TaskCreate) -> TaskResponse:
     now = datetime.now(timezone.utc)
 
     task = TaskResponse(
-        id=str(uuid4()),
-        title=payload.title,
-        description=payload.description if payload.description is not None else "",
-        status=payload.status,
-        priority=payload.priority,
-        assignee=payload.assignee,
-        created_at=now,
-        updated_at=now,
+    id=str(uuid4()),
+    title=payload.title,
+    description=payload.description if payload.description is not None else "",
+    status=payload.status,
+    priority=payload.priority,
+    assignee=payload.assignee,
+    tags=payload.tags,
+    created_at=now,
+    updated_at=now,
     )
 
     _tasks[task.id] = task
 
     return task
 
+#updating this fct to support tags
 def get_all_tasks(
     status: Optional["TaskStatus"] = None,
     priority: Optional["TaskPriority"] = None,
+    tag: Optional[str] = None,
 ) -> list[TaskResponse]:
-    tasks = list[TaskResponse](_tasks.values())
+    tasks = list(_tasks.values())
 
     if status is not None:
         tasks = [t for t in tasks if t.status == status]
 
     if priority is not None:
         tasks = [t for t in tasks if t.priority == priority]
+
+    if tag is not None:
+        cleaned_tag = tag.strip()
+        tasks = [t for t in tasks if cleaned_tag in t.tags]
 
     return tasks
 

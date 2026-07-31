@@ -86,6 +86,30 @@
             line-height: 1.6;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tag-filter-input {
+            height: 46px;
+            min-width: 210px;
+            padding: 0 13px;
+            color: var(--text-primary);
+            background: #ffffff;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-small);
+            outline: none;
+            font: inherit;
+        }
+
+        .tag-filter-input:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 4px rgba(91, 91, 214, 0.12);
+        }
+
         main {
             width: min(1240px, 100%);
             margin: 0 auto;
@@ -183,6 +207,25 @@
 
         .task-card p:last-child {
             margin-bottom: 0;
+        }
+
+        .task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 12px;
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 9px;
+            color: var(--brand-dark);
+            background: var(--brand-soft);
+            border: 1px solid #dadaff;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
         }
 
         .task-meta {
@@ -565,6 +608,14 @@
                 flex-direction: column;
             }
 
+            .header-actions {
+                width: 100%;
+            }
+
+            .tag-filter-input {
+                width: 100%;
+            }
+
             .primary-button {
                 width: 100%;
             }
@@ -597,7 +648,19 @@
                 <h1>Task Board</h1>
                 <p>Drag tasks between columns to update their status.</p>
             </div>
-            <button id="create-task-button" class="primary-button" type="button">Create New Task</button>
+            <div class="header-actions">
+                <input
+                    id="tag-filter-input"
+                    class="tag-filter-input"
+                    type="text"
+                    placeholder="Filter by tag"
+                    aria-label="Filter tasks by tag"
+                />
+
+                <button id="apply-tag-filter" class="secondary-button" type="button">Apply</button>
+                <button id="clear-tag-filter" class="secondary-button" type="button">Clear</button>
+                <button id="create-task-button" class="primary-button" type="button">Create New Task</button>
+            </div>
         </div>
     </header>
 
@@ -642,6 +705,16 @@
                     </select>
                 </div>
 
+                <div class="form-field">
+                    <label for="task-tags">Tags</label>
+                    <input
+                        id="task-tags"
+                        name="tags"
+                        type="text"
+                        placeholder="Backend, Regression, API"
+                    />
+                </div>
+
                 <div id="task-server-error" class="server-error" aria-live="polite"></div>
 
                 <div class="modal-actions">
@@ -669,6 +742,9 @@
 
     const board = document.getElementById("board");
     const createTaskButton = document.getElementById("create-task-button");
+    const tagFilterInput = document.getElementById("tag-filter-input");
+    const applyTagFilterButton = document.getElementById("apply-tag-filter");
+    const clearTagFilterButton = document.getElementById("clear-tag-filter");
     const modalOverlay = document.getElementById("task-modal-overlay");
     const modalTitle = document.getElementById("task-modal-title");
     const closeModalButton = document.getElementById("close-task-modal");
@@ -678,6 +754,7 @@
     const descriptionInput = document.getElementById("task-description");
     const statusInput = document.getElementById("task-status");
     const priorityInput = document.getElementById("task-priority");
+    const tagsInput = document.getElementById("task-tags");
     const titleError = document.getElementById("title-error");
     const serverError = document.getElementById("task-server-error");
 
@@ -685,6 +762,7 @@
     let draggedTaskId = null;
     let modalMode = "create";
     let editingTaskId = null;
+    let activeTagFilter = "";
 
     function escapeHtml(value) {
         return String(value ?? "")
@@ -724,7 +802,11 @@
 
     async function fetchTasks() {
         try {
-            const response = await fetch(`${API_BASE}/tasks`);
+            const query = activeTagFilter
+                ? `?tag=${encodeURIComponent(activeTagFilter)}`
+                : "";
+
+            const response = await fetch(`${API_BASE}/tasks${query}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to load tasks: HTTP ${response.status}`);
@@ -768,6 +850,7 @@
         descriptionInput.value = task.description ?? "";
         statusInput.value = task.status;
         priorityInput.value = task.priority;
+        tagsInput.value = (task.tags ?? []).join(", ");
         clearFormErrors();
         modalOverlay.hidden = false;
         titleInput.focus();
@@ -826,6 +909,17 @@
                         <h3>${escapeHtml(task.title)}</h3>
                         <p>${escapeHtml(task.description)}</p>
 
+                        ${(task.tags ?? []).length
+                            ? `
+                                <div class="task-tags">
+                                    ${(task.tags ?? []).map((tag) => `
+                                        <span class="tag-pill">${escapeHtml(tag)}</span>
+                                    `).join("")}
+                                </div>
+                            `
+                            : ""
+                        }
+
                         <div class="task-meta">
                             <span
                                 class="priority-pill priority-${escapeHtml(
@@ -862,6 +956,25 @@
     }
 
     createTaskButton.addEventListener("click", openCreateModal);
+
+    applyTagFilterButton.addEventListener("click", () => {
+        activeTagFilter = tagFilterInput.value.trim();
+        fetchTasks();
+    });
+
+    clearTagFilterButton.addEventListener("click", () => {
+        tagFilterInput.value = "";
+        activeTagFilter = "";
+        fetchTasks();
+    });
+
+    tagFilterInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            activeTagFilter = tagFilterInput.value.trim();
+            fetchTasks();
+        }
+    });
+
     closeModalButton.addEventListener("click", closeTaskModal);
     cancelModalButton.addEventListener("click", closeTaskModal);
 
@@ -905,12 +1018,18 @@
             return;
         }
 
+        const tags = tagsInput.value
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0);
+
         const payload = {
             title,
             description: descriptionInput.value,
             status: statusInput.value,
             priority: priorityInput.value,
-            assignee: null
+            assignee: null,
+            tags
         };
 
         const isEdit = modalMode === "edit";
