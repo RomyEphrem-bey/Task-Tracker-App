@@ -1,0 +1,11 @@
+# Reflection
+
+Two different AI tools were used for two different jobs. ChatGPT Pro handled the planning phase for Tags: turning the assignment brief into five user stories with acceptance criteria, and comparing two lightweight architectures (tags embedded on the task vs. a separate tag catalogue) before any code was written. Claude Code (this tool) was then used for hands-on work: reviewing and consolidating the scattered planning documents, running the actual pytest suite, executing break tests against the live code instead of just describing them, and assembling the five required documentation files from that raw material.
+
+**Where AI helped:** The architecture comparison for Tags was the clearest win. Asking for two concrete options with trade-offs, instead of one recommendation, made it obvious that the separate tag-catalogue design would have added ID resolution, cleanup logic, and index maintenance for zero benefit against the actual user stories. That comparison step is what kept the feature small instead of over-built.
+
+**Where AI slowed things down:** The original planning work was spread across a ChatGPT export, two separate ADR drafts, a running discussion log, and a Word document with screenshots — none named or located the way the tutor's rubric expected. Consolidating that into the five required files after the fact took longer than it would have if the documentation structure had been set up correctly from the start, before drafting began.
+
+**Where review changed the result:** The AI's first draft of Tags Story 1 only said a task could be assigned multiple tags — it didn't say tags could be created *at the moment the task itself is created*, which was an actual requirement. Catching that gap before implementation started meant the acceptance criteria matched what was actually needed, rather than discovering the mismatch later in testing. Separately, a case-sensitivity limitation in tag matching (`"Backend"` vs `"backend"`) had been noticed manually during earlier testing but was never formally run as a break test — going back and actually executing it against the live API (rather than leaving it as a passing observation) turned an assumption into confirmed, reproducible evidence in `verification.md`.
+
+*Feature 2 (Task Comments) reflection to be appended once implemented.*
