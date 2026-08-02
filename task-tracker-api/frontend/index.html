@@ -228,6 +228,19 @@
             font-weight: 700;
         }
 
+        .comment-count-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 9px;
+            color: var(--text-secondary);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
         .task-meta {
             display: flex;
             flex-wrap: wrap;
@@ -560,6 +573,46 @@
             border-radius: 12px;
         }
 
+        .comments-list {
+            display: grid;
+            gap: 8px;
+            margin: 0 0 10px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .comment-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 13px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-small);
+        }
+
+        .comment-text {
+            overflow-wrap: anywhere;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .comment-delete-button {
+            width: 26px;
+            height: 26px;
+            font-size: 1.4rem;
+        }
+
+        .comment-add-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .comment-add-row input {
+            flex: 1;
+        }
+
         .modal-actions {
             justify-content: flex-end;
             margin-top: 22px;
@@ -715,6 +768,21 @@
                     />
                 </div>
 
+                <div id="comments-section" class="form-field" hidden>
+                    <label>Comments</label>
+                    <ul id="comments-list" class="comments-list"></ul>
+                    <div class="comment-add-row">
+                        <input
+                            id="new-comment-text"
+                            type="text"
+                            placeholder="Add a comment"
+                            aria-label="Add a comment"
+                        />
+                        <button id="add-comment-button" class="secondary-button" type="button">Add</button>
+                    </div>
+                    <div id="comment-error" class="field-error" aria-live="polite"></div>
+                </div>
+
                 <div id="task-server-error" class="server-error" aria-live="polite"></div>
 
                 <div class="modal-actions">
@@ -757,6 +825,11 @@
     const tagsInput = document.getElementById("task-tags");
     const titleError = document.getElementById("title-error");
     const serverError = document.getElementById("task-server-error");
+    const commentsSection = document.getElementById("comments-section");
+    const commentsList = document.getElementById("comments-list");
+    const newCommentInput = document.getElementById("new-comment-text");
+    const addCommentButton = document.getElementById("add-comment-button");
+    const commentError = document.getElementById("comment-error");
 
     let tasks = [];
     let draggedTaskId = null;
@@ -830,6 +903,21 @@
         titleInput.removeAttribute("aria-invalid");
     }
 
+    function renderComments(comments) {
+        commentsList.innerHTML = (comments ?? []).map((comment) => `
+            <li class="comment-item" data-comment-id="${escapeHtml(comment.id)}">
+                <span class="comment-text">${escapeHtml(comment.text)}</span>
+                <button
+                    class="icon-button comment-delete-button"
+                    type="button"
+                    data-action="delete-comment"
+                    data-comment-id="${escapeHtml(comment.id)}"
+                    aria-label="Delete comment"
+                >&times;</button>
+            </li>
+        `).join("");
+    }
+
     function openCreateModal() {
         modalMode = "create";
         editingTaskId = null;
@@ -837,6 +925,9 @@
         taskForm.reset();
         statusInput.value = "ToDo";
         priorityInput.value = "Medium";
+        commentsSection.hidden = true;
+        commentsList.innerHTML = "";
+        commentError.textContent = "";
         clearFormErrors();
         modalOverlay.hidden = false;
         titleInput.focus();
@@ -851,6 +942,10 @@
         statusInput.value = task.status;
         priorityInput.value = task.priority;
         tagsInput.value = (task.tags ?? []).join(", ");
+        commentsSection.hidden = false;
+        newCommentInput.value = "";
+        commentError.textContent = "";
+        renderComments(task.comments ?? []);
         clearFormErrors();
         modalOverlay.hidden = false;
         titleInput.focus();
@@ -862,6 +957,9 @@
         clearFormErrors();
         modalMode = "create";
         editingTaskId = null;
+        commentsSection.hidden = true;
+        commentsList.innerHTML = "";
+        commentError.textContent = "";
     }
 
     function getServerErrorMessage(data, status) {
@@ -929,6 +1027,11 @@
                                 ${escapeHtml(task.priority)}
                             </span>
 
+                            ${(task.comments ?? []).length
+                                ? `<span class="comment-count-pill">💬 ${(task.comments ?? []).length}</span>`
+                                : ""
+                            }
+
                             <button class="edit-button" type="button" data-action="edit">Edit</button>
                         </div>
                     </article>
@@ -987,6 +1090,89 @@
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && !modalOverlay.hidden) {
             closeTaskModal();
+        }
+    });
+
+    addCommentButton.addEventListener("click", async () => {
+        const text = newCommentInput.value.trim();
+        commentError.textContent = "";
+
+        if (!text) {
+            commentError.textContent = "Comment cannot be blank.";
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_BASE}/tasks/${editingTaskId}/comments`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text })
+                }
+            );
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                commentError.textContent = getServerErrorMessage(data, response.status);
+                return;
+            }
+
+            const comment = await response.json();
+            const task = tasks.find((item) => String(item.id) === String(editingTaskId));
+
+            if (task) {
+                task.comments = [...(task.comments ?? []), comment];
+                renderComments(task.comments);
+                renderBoard(tasks);
+            }
+
+            newCommentInput.value = "";
+        } catch (error) {
+            commentError.textContent = "A network error occurred. Please try again.";
+        }
+    });
+
+    newCommentInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            addCommentButton.click();
+        }
+    });
+
+    commentsList.addEventListener("click", async (event) => {
+        const deleteButton = event.target.closest('[data-action="delete-comment"]');
+
+        if (!deleteButton) {
+            return;
+        }
+
+        const commentId = deleteButton.dataset.commentId;
+
+        try {
+            const response = await fetch(
+                `${API_BASE}/tasks/${editingTaskId}/comments/${commentId}`,
+                { method: "DELETE" }
+            );
+
+            if (!response.ok) {
+                commentError.textContent = `The server returned HTTP ${response.status}.`;
+                return;
+            }
+
+            const task = tasks.find((item) => String(item.id) === String(editingTaskId));
+
+            if (task) {
+                task.comments = (task.comments ?? []).filter(
+                    (comment) => String(comment.id) !== String(commentId)
+                );
+                renderComments(task.comments);
+                renderBoard(tasks);
+            }
+        } catch (error) {
+            commentError.textContent = "A network error occurred. Please try again.";
         }
     });
 

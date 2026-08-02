@@ -93,6 +93,34 @@ Full suite run: `python -m pytest tests/ -v`
 
 All 33 pass. No regressions in pre-existing task or tag behavior from adding comments.
 
+### Backend re-check after frontend implementation
+After building the frontend for Task Comments (comment-count badge on cards, and the add/list/delete comments section in the Edit Task modal), the full backend pytest suite was re-run to confirm the frontend-only changes (`frontend/index.html`) did not break any backend behavior:
+
+```
+python -m pytest tests/ -q
+33 passed, 3 warnings in 1.10s
+```
+
+All 33 tests still pass. This is expected since no backend file (`app/models.py`, `app/storage.py`, `app/main.py`) was touched during the frontend step — this run confirms that expectation rather than assuming it.
+
+### Manual browser checks
+Performed against the running frontend (`frontend/index.html` + local API), starting from a clean task board (all prior test tasks deleted via the API first):
+
+- **Clean starting point.** Board reset to a known state before testing — see [screenshots/05-task-board-clean-start.png](screenshots/05-task-board-clean-start.png).
+- **Adding a comment on Create — bug found.** The Create New Task modal is not supposed to expose comments at all (comments should only be addable once a task exists, via Edit — see Story 1/mini-adr.md). Typing a comment and clicking "Add" while creating a task produced a `Task with id 'null' not found` error, because no task exists yet at that point. See [screenshots/06-bug-comments-visible-on-create.png](screenshots/06-bug-comments-visible-on-create.png). Root cause: `#comments-section` has `class="form-field"`, and the `.form-field { display: grid; }` rule overrides the browser's default `[hidden] { display: none; }` behavior, so setting `commentsSection.hidden = true` in `openCreateModal()` had no visual effect. **Fix identified but not yet applied** — see "Open issue" below.
+- **Task creation itself is unaffected by the bug.** Despite the comment-add error above, clicking the form's main "Save" button still created the task successfully — see [screenshots/09-task-created-despite-comment-bug.png](screenshots/09-task-created-despite-comment-bug.png), where "Task 3" appears on the board. The bug is cosmetic/UI-scoped to the wrongly-visible comment input, not a data-integrity issue.
+- **Adding the first comment via Edit.** Confirmed the intended path works correctly: opening Edit on a task, typing a comment, and clicking Add immediately shows it in the list — see [screenshots/07-add-first-comment-on-edit.png](screenshots/07-add-first-comment-on-edit.png).
+- **Blank comment validation in the UI.** Submitting an empty/whitespace comment via Edit shows an inline "Comment cannot be blank." error and does not add anything, matching the backend's 422 rejection — see [screenshots/08-blank-comment-validation.png](screenshots/08-blank-comment-validation.png).
+- **Comment count badge on cards.** After adding one comment to a task, its card shows a "💬 1" badge next to the priority pill, matching Story 5 — see [screenshots/10-comment-count-badge.png](screenshots/10-comment-count-badge.png). Tasks with zero comments correctly show no badge (visible on the other cards in the same screenshot).
+
+#### Open issue: Comments section incorrectly visible on Create
+Confirmed via the manual checks above. **Known limitation, deliberately left unfixed for this submission** — to be applied in a future pass. Fix identified for when that happens:
+```css
+#comments-section[hidden] {
+    display: none;
+}
+```
+
 ### Break Test — deliberately weakening blank-comment validation
 Unlike the Tags break tests (which probed an existing, unfixed gap with adversarial input), this break test targets the test suite's own reliability: temporarily breaking the implementation to confirm the test that guards it actually fails when it should.
 
