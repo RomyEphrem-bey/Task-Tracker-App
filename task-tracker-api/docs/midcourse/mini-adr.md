@@ -48,14 +48,18 @@ Each task should support a small discussion thread: add a comment, list all comm
 | Future flexibility (e.g. comments independent of a task lifecycle) | Low | Higher — comments are independent records |
 | Code required | Smaller | Slightly larger (new store, index, cleanup path) |
 
-### Decision
-**Architecture B.** Comments are stored in a separate `_comments` dict, keyed by comment ID, with each comment record holding the `task_id` it belongs to.
+### Decision history
+1. **Initial decision:** Architecture B (separate `_comments` store) — directed by the user, overriding the AI's original recommendation of Architecture A. The AI then adopted Architecture B as the active working decision: the comparison table, "Rejected as too complex" rationale, route design note, and a `models.py` draft were all built around B, and that draft was awaiting the user's approval.
+2. **Revised decision:** Architecture A (comments embedded as a list on the task) — reverted back before the B implementation was ever applied. This reversal was the user's own decision, made while Architecture B was still the AI's active, in-progress selection. The AI did not propose or accept this reversal; it is recorded here as a human-directed change made against the AI's then-current implementation path.
+
+### Final Decision
+**Architecture A.** Comments are stored as `comments: list[Comment]` directly on each `Task`, matching the same pattern already used for Tags.
 
 ### Rejected as too complex / out of scope
-Architecture A was not chosen for this feature, despite being the smaller change and the same pattern used for Tags — Architecture B was deliberately picked to keep comment storage decoupled from the task record itself.
+Architecture B was reconsidered and ultimately rejected. It would have required a separate `_comments` store, an index by `task_id`, and manual cleanup logic when a task is deleted — overhead not justified once weighed against Architecture A's simplicity, which also mirrors the already-validated Tags embedding pattern.
 
-### Route design note
-Architecture B's natural delete route would be flat (`DELETE /comments/{comment_id}`), but that can't return 404 for "task not found" (Story 3's requirement) and would be the only non-`/tasks/{task_id}/...`-nested route in the API. Decision: keep the storage separate (Architecture B) but nest the route as `DELETE /tasks/{task_id}/comments/{comment_id}`, so it validates the task exists and stays consistent with `POST/GET /tasks/{task_id}/comments`.
+### Route design note (revised)
+With Architecture A, a comment is found and removed by searching `task.comments` for a matching `id`. This means `DELETE /tasks/{task_id}/comments/{comment_id}` naturally validates both task existence and comment existence with no separate store or cleanup step required — simpler than the nested-route workaround Architecture B needed.
 
 ### Planned endpoints
 - `POST /tasks/{task_id}/comments` — add a comment; 404 if task missing, 422 if text is blank after trimming.
@@ -64,17 +68,18 @@ Architecture B's natural delete route would be flat (`DELETE /comments/{comment_
 
 ### Planned data model
 ```
-Comment
- ├─ id: string
- ├─ task_id: string
- ├─ text: string
- └─ created_at: datetime
+Task
+ ├─ ...
+ └─ comments: list[Comment] = []
+     ├─ id: string
+     ├─ text: string
+     └─ created_at: datetime
 ```
 
 ### Files expected to change
-- `app/models.py` — new `Comment`/`CommentCreate` models, text validator (trim, reject blank).
-- `app/storage.py` — new `_comments` dict, `add_comment()`, `get_comments_for_task()`, `delete_comment()`, and cleanup of a task's comments inside `delete_task()`.
-- `app/main.py` — three new nested routes listed above.
+- `app/models.py` — new `Comment` model; `comments: list[Comment] = []` added to `TaskCreate`/`TaskUpdate`/`TaskResponse`; text validator (trim, reject blank).
+- `app/storage.py` — helpers to add/list/delete a comment within a task's `comments` list; no separate store or cleanup needed since comments live inside the task.
+- `app/main.py` — three nested routes listed above.
 - `frontend/index.html` — comment list/add/delete UI in the task edit view, comment count on cards.
 - `tests/test_tasks.py` (or a new `tests/test_comments.py`) — coverage per Story 1-3 and 5.
 

@@ -105,3 +105,95 @@ This would have been too open-ended — no constraints on scope, no required del
 **AI returned:** Recommended and used a nested route instead — `DELETE /tasks/{task_id}/comments/{comment_id}` — keeping Architecture B's storage but aligning the URL shape with the rest of the API.
 
 **Accepted / edited / rejected:** Accepted as proposed; recorded in `mini-adr.md`'s "Route design note."
+
+---
+
+## 9. Architecture reversal — back to Architecture A
+
+**Prompt:**
+> let s pick Architecture A and comment this as a record in the related document that this change wasn't accepted by AI and my decision is to follow Architecture A
+
+**Context:** Architecture B was, at this point, the AI-selected active architecture — a `models.py` draft implementing B had already been proposed and was awaiting approval. The AI had not proposed switching back to A.
+
+**Accepted / edited / rejected:** This is a human-directed decision reversal, explicitly not an AI suggestion. Recorded as such in `mini-adr.md`'s "Decision history."
+
+---
+
+## 10. Implementation constraints prompt
+
+**Prompt:**
+> so now we nned to follow Adr A for feature 2. Constraints: DO not change initial code, DO not break the Code, Make sure to apply first the backend then once applied we will move into writing the testing functions. Make sure to not make assumptions. DO not change the existing codes unless approved, explain everything step by step remember I'm just a QA
+
+**AI returned:** A proposed `app/models.py` addition for Architecture A: a new `Comment` model, a new `CommentCreate` model with a trim/reject-blank validator (matching the existing title/tag validator pattern), and a single new `comments` field added only to `TaskResponse`. No existing class, field, or validator was touched. Deliberately left `comments` out of `TaskCreate` and `TaskUpdate`, since no approved user story asks for setting comments at task-creation time or through the general edit PATCH — comments are only added/listed/deleted through their own dedicated actions (Stories 1-3).
+
+**Accepted / edited / rejected:** Accepted, pending one confirmation (see prompt #11 below) before being applied to disk.
+
+---
+
+## 11. Design confirmation — comments only in edit modal
+
+**Prompt:**
+> the comment field is only available in edit modal not on create
+
+**AI returned:** Confirmation that this matches exactly what had been proposed (no `comments` field on `TaskCreate`), so the `models.py` change was applied as drafted.
+
+**Accepted / edited / rejected:** Accepted as-is. The full pytest suite (23 tests) was re-run immediately after applying the change and confirmed no regressions — the addition is purely additive.
+
+---
+
+## 12. Storage layer prompt — list/add/delete comment behavior
+
+**Prompt:**
+> So now let s move specifically into supporting list/add/delete comment behavior, same constraint as previous prompt
+
+**AI returned:** Before writing any code, the AI raised one open design question rather than assuming an answer: should adding/deleting a comment bump the task's `updated_at` timestamp, the way the existing PATCH endpoint always does? The user chose **no** — `updated_at` should only reflect changes to the task's own fields, not its comments. The AI then proposed three new `app/storage.py` functions (`add_comment`, `get_comments_for_task`, `delete_comment`), all built around the existing `_tasks` dict and the same "copy the task, don't mutate in place" pattern already used by `update_task()`. No existing function was changed.
+
+**Accepted / edited / rejected:** Accepted and applied as proposed. Full pytest suite (23 tests) re-run immediately after and confirmed no regressions.
+
+---
+
+## 13. Routes layer prompt — reject blank / list / delete / 404 handling
+
+**Prompt:**
+> now let s modify specifically the functions to handle user story 1 related to "eject blank comment, list comments for a task, delete comment, 404 for missing task/comment." same constraints as previous prompt and do not forget to to log
+
+**AI returned:** Pointed out that "reject blank comment" was already fully handled by the `CommentCreate` validator from Step 1, so no new code was needed for that part. Proposed three new `app/main.py` routes — `POST/GET /tasks/{task_id}/comments` and `DELETE /tasks/{task_id}/comments/{comment_id}` — each calling the Step-2 storage functions and translating their `None`/`False`/`True` results into 404s or success responses, matching the existing route style exactly (same `HTTPException` pattern as `update_task_route`/`delete_task`). No existing route was changed.
+
+**Accepted / edited / rejected:** Accepted and applied as proposed. Full pytest suite (23 tests) passed with no regressions, and a manual smoke test via `TestClient` confirmed: trimming works, a blank comment returns 422, a missing task returns 404 on add/list/delete, a missing comment on a real task returns 404, a successful delete returns 204, and the comment list correctly reflects the deletion afterward.
+
+---
+
+## 14. Comment count on cards — sequencing check
+
+**Prompt:**
+> So now let s add a count on cards, that will count on each task the number of comments added, same as previous prompt for the constraints
+
+**AI returned:** Flagged that this request skips ahead of the stated backend → tests → frontend order (pytest tests for Stories 1-3 hadn't been written yet), and noted the count itself needs no backend change since `TaskResponse` already returns the full `comments` list. The user chose to write the pytest tests first, as originally planned, before touching the frontend.
+
+**Accepted / edited / rejected:** Card-count implementation deferred; proceeded to write `tests/test_comments.py` instead (prompt #15).
+
+---
+
+## 15. Backend test-writing prompt
+
+**Context:** Continuation of prompt #14's decision to write tests before the frontend. Ten pytest tests were drafted covering Stories 1-3 (add/trim/reject-blank/missing-task-404, list/empty/missing-task-404, delete/missing-task-404/missing-comment-404) in a new `tests/test_comments.py`.
+
+**Follow-up prompt:**
+> why covering only stories from1 to 3?
+
+**AI returned:** Explained that Story 5 (comment count) has no dedicated backend endpoint, so it had been left out of the pytest file on the assumption it belonged only to a manual browser check later. Also identified a legitimate backend-testable piece of Story 5 that had been overlooked — confirming `GET /tasks/{task_id}` reflects the correct `comments` count after add/delete — and asked whether to add it rather than assuming either way.
+
+**Accepted / edited / rejected:** User chose to leave Story 5 to the manual browser check only, keeping `test_comments.py` scoped strictly to Stories 1-3. The 10 tests were applied as originally drafted; full suite (33 tests: 23 existing + 10 new) passed.
+
+---
+
+## 16. Break Test prompt — Task Comments
+
+**Prompt:**
+> so not let's try breaking 1 test by adding an acceptance to having a blank comment & re rerun the test to see a failure & let s document this
+
+**AI returned:** A step-by-step plan: temporarily remove the blank-rejection check from `CommentCreate`'s `_text_not_blank` validator in `app/models.py`, re-run `test_add_comment_blank_returns_422` to confirm it fails, revert the validator, re-run the full suite to confirm all tests pass again, then document the result.
+
+**Result:** With the validator weakened, the test failed exactly as expected — `assert 201 == 422` (a blank comment was accepted instead of rejected). This confirmed the test genuinely guards the behavior it claims to. The validator was reverted immediately, and the full suite (33 tests) passed again.
+
+**Accepted / edited / rejected:** Accepted and executed as proposed. Recorded as a Break Test in `verification.md`'s Feature 2 section — this is a different break-test style than Tags' (which probed a real, unfixed limitation with adversarial input); this one deliberately breaks the implementation to prove the test suite would catch a regression.
