@@ -78,4 +78,4 @@ Comment
 - `frontend/index.html` — comment list/add/delete UI in the task edit view, comment count on cards.
 - `tests/test_tasks.py` (or a new `tests/test_comments.py`) — coverage per Story 1-3 and 5.
 
-_Implementation not yet started — this section will be updated once built._
+_Implementation not yet started 
