@@ -89,6 +89,26 @@ class TaskUpdate(BaseModel):
         return validate_tags(tags)
 
 
+class Comment(BaseModel):
+    id: str
+    text: str
+    created_at: datetime
+
+
+class CommentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+
+    @field_validator("text")
+    @classmethod
+    def _text_not_blank(cls, v: str) -> str:
+        v2 = v.strip()
+        if not v2:
+            raise ValueError("Comment text is required and cannot be blank")
+        return v2
+
+
 class TaskResponse(BaseModel):
     id: str
     title: str
@@ -97,6 +117,7 @@ class TaskResponse(BaseModel):
     priority: TaskPriority
     assignee: Optional[str]
     tags: list[str] = Field(default_factory=list)
+    comments: list[Comment] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

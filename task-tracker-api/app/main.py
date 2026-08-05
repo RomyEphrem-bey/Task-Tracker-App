@@ -6,7 +6,7 @@
 from fastapi import FastAPI, HTTPException, status, Response
 from typing import Optional
 from app import storage
-from app.models import TaskCreate, TaskUpdate, TaskResponse, TaskStatus, TaskPriority
+from app.models import TaskCreate, TaskUpdate, TaskResponse, TaskStatus, TaskPriority, Comment, CommentCreate
 from app.core.config import settings
 from app.api.routes.health import router as health_router
 from app.business_rules import validate_status_transition
@@ -139,6 +139,63 @@ def delete_task(task_id: str) -> Response:
         raise HTTPException(
             status_code=404,
             detail=f"Task with id '{task_id}' not found",
+        )
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.post(
+    "/tasks/{task_id}/comments",
+    response_model=Comment,
+    status_code=status.HTTP_201_CREATED,
+    tags=["comments"],
+)
+def add_comment(task_id: str, payload: CommentCreate) -> Comment:
+    comment = storage.add_comment(task_id, payload)
+
+    if comment is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task with id '{task_id}' not found",
+        )
+
+    return comment
+
+
+@app.get(
+    "/tasks/{task_id}/comments",
+    response_model=list[Comment],
+    tags=["comments"],
+)
+def list_comments(task_id: str) -> list[Comment]:
+    comments = storage.get_comments_for_task(task_id)
+
+    if comments is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task with id '{task_id}' not found",
+        )
+
+    return comments
+
+
+@app.delete(
+    "/tasks/{task_id}/comments/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["comments"],
+)
+def delete_comment(task_id: str, comment_id: str) -> Response:
+    result = storage.delete_comment(task_id, comment_id)
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task with id '{task_id}' not found",
+        )
+
+    if result is False:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Comment with id '{comment_id}' not found",
         )
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

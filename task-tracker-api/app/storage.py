@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
-from app.models import TaskCreate, TaskResponse, TaskStatus, TaskUpdate
+from app.models import TaskCreate, TaskResponse, TaskStatus, TaskUpdate, Comment, CommentCreate
 
 
 _tasks: dict[str, TaskResponse] = {}
@@ -69,6 +69,44 @@ def delete_task(task_id: str) -> bool:
         del _tasks[task_id]
         return True
     return False
+
+
+def add_comment(task_id: str, payload: CommentCreate) -> Optional[Comment]:
+    task = _tasks.get(task_id)
+    if task is None:
+        return None
+
+    comment = Comment(
+        id=str(uuid4()),
+        text=payload.text,
+        created_at=datetime.now(timezone.utc),
+    )
+
+    updated_task = task.model_copy(update={"comments": task.comments + [comment]})
+    _tasks[task_id] = updated_task
+
+    return comment
+
+
+def get_comments_for_task(task_id: str) -> Optional[list[Comment]]:
+    task = _tasks.get(task_id)
+    if task is None:
+        return None
+    return task.comments
+
+
+def delete_comment(task_id: str, comment_id: str) -> Optional[bool]:
+    task = _tasks.get(task_id)
+    if task is None:
+        return None
+
+    remaining_comments = [c for c in task.comments if c.id != comment_id]
+    if len(remaining_comments) == len(task.comments):
+        return False
+
+    updated_task = task.model_copy(update={"comments": remaining_comments})
+    _tasks[task_id] = updated_task
+    return True
 
 
 def _reset() -> None:
