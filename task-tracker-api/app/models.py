@@ -18,6 +18,18 @@ class TaskPriority(str, Enum):
 
 
 def validate_tags(tags: list[str]) -> list[str]:
+    """Strip whitespace from each tag and remove duplicates.
+
+    Args:
+        tags (list[str]): The raw tag values to validate.
+
+    Returns:
+        list[str]: The cleaned tags, deduplicated while preserving
+            their original order.
+
+    Raises:
+        ValueError: If any tag is blank after stripping whitespace.
+    """
     cleaned_tags: list[str] = []
 
     for tag in tags:
