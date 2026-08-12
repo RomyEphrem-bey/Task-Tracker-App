@@ -11,6 +11,7 @@
 
 ## CI evidence
 - Workflow file: `.github/workflows/ci.yml`
+- Triggers on both `push` (all branches) and `pull_request` (target: main) — confirmed by reading the workflow file.
 - Latest run: https://github.com/RomyEphrem-bey/Task-Tracker-App/actions/runs/31589404512 (run #13, commit `9b531ef`, conclusion: success)
 - Test command used by CI: `pytest -v --tb=short` (working directory: `task-tracker-api`)
 - Shortcut check: no `continue-on-error`, no `|| true`, pytest is not skipped, dependencies are installed before tests run
