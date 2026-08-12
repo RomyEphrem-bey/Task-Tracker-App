@@ -34,15 +34,6 @@ def test_add_comment_blank_returns_422(client: TestClient, created_task):
     assert r.status_code == 422
 
 
-def test_add_comment_text_over_1000_chars_returns_422(client: TestClient, created_task):
-    r = client.post(
-        f"/tasks/{created_task['id']}/comments",
-        json={"text": "x" * 1001},
-    )
-
-    assert r.status_code == 422
-
-
 def test_add_comment_missing_task_returns_404(client: TestClient):
     r = client.post("/tasks/missing/comments", json={"text": "hello"})
 

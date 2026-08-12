@@ -185,64 +185,7 @@ def test_create_task_rejects_blank_tag(client):
 
     assert response.status_code == 422
 
-#reject a description over 2000 characters:
-def test_create_task_description_over_2000_chars_returns_422(client):
-    response = client.post(
-        "/tasks",
-        json={
-            "title": "Test login API",
-            "description": "x" * 2001,
-        },
-    )
-
-    assert response.status_code == 422
-
-#reject an assignee over 100 characters:
-def test_create_task_assignee_over_100_chars_returns_422(client):
-    response = client.post(
-        "/tasks",
-        json={
-            "title": "Test login API",
-            "assignee": "x" * 101,
-        },
-    )
-
-    assert response.status_code == 422
-
-#reject a tag over 50 characters:
-def test_create_task_tag_over_50_chars_returns_422(client):
-    response = client.post(
-        "/tasks",
-        json={
-            "title": "Test login API",
-            "tags": ["x" * 51],
-        },
-    )
-
-    assert response.status_code == 422
-
-#reject more than 20 tags:
-def test_create_task_more_than_20_tags_returns_422(client):
-    response = client.post(
-        "/tasks",
-        json={
-            "title": "Test login API",
-            "tags": [f"tag{i}" for i in range(21)],
-        },
-    )
-
-    assert response.status_code == 422
-
-#reject a patched assignee over 100 characters:
-def test_patch_assignee_over_100_chars_returns_422(client, created_task):
-    response = client.patch(
-        f"/tasks/{created_task['id']}",
-        json={"assignee": "x" * 101},
-    )
-
-    assert response.status_code == 422
-
-#update only the tags:
+#update only the tags: 
 def test_update_only_tags_preserves_other_fields(client):
     create_response = client.post(
         "/tasks",

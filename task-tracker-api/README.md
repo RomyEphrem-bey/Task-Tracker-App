@@ -90,19 +90,7 @@ responses.
 
 ---
 
-## 5. Validation rules
-
-- **Title** — required, cannot be blank, 200 characters or fewer.
-- **Description** — optional, 2000 characters or fewer.
-- **Assignee** — optional, 100 characters or fewer.
-- **Tags** — each tag is trimmed and cannot be blank, 50 characters or fewer, duplicates are removed, and a task can have at most 20 tags.
-- **Comment text** — required, cannot be blank, 1000 characters or fewer.
-
-Any request that exceeds these limits is rejected with `422 Unprocessable Entity`.
-
----
-
-## 6. Test the health endpoint
+## 5. Test the health endpoint
 
 ```bash
 curl -s http://localhost:8000/health
@@ -119,7 +107,7 @@ Expected response:
 
 ---
 
-## 7. Run the test suite
+## 6. Run the test suite
 
 ```bash
 pytest
