@@ -12,9 +12,11 @@
 ## CI evidence
 - Workflow file: `.github/workflows/ci.yml`
 - Triggers on both `push` (all branches) and `pull_request` (target: main) — confirmed by reading the workflow file.
-- Latest run: https://github.com/RomyEphrem-bey/Task-Tracker-App/actions/runs/31589404512 (run #13, commit `9b531ef`, conclusion: success)
+- Latest push run: https://github.com/RomyEphrem-bey/Task-Tracker-App/actions/runs/31593697074 (commit `1ee07ec`, conclusion: success)
+- Latest pull_request run: https://github.com/RomyEphrem-bey/Task-Tracker-App/actions/runs/31591114587 (commit `ac79dc7`, conclusion: success)
 - Test command used by CI: `pytest -v --tb=short` (working directory: `task-tracker-api`)
-- Shortcut check: no `continue-on-error`, no `|| true`, pytest is not skipped, dependencies are installed before tests run
+- Shortcut check: no `continue-on-error`, no `|| true`, pytest is not skipped, dependencies are installed before tests run, Python version is pinned (`3.11`) not vague
+- Intentional red-run evidence: N/A — not produced during Module 4 (checked `docs/midcourse/` and Module 5 docs; no deliberate break-test exercise found, only a real accidental CI failure from a missing dependency, later fixed in `1b7ea27`)
 
 ## Docker evidence
 - Build command: `docker build -t task-tracker:dev task-tracker-api`
