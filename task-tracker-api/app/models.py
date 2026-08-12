@@ -38,8 +38,14 @@ def validate_tags(tags: list[str]) -> list[str]:
         if not cleaned_tag:
             raise ValueError("Tags cannot be blank")
 
+        if len(cleaned_tag) > 50:
+            raise ValueError("Tags must be 50 characters or fewer")
+
         if cleaned_tag not in cleaned_tags:
             cleaned_tags.append(cleaned_tag)
+
+    if len(cleaned_tags) > 20:
+        raise ValueError("A task can have at most 20 tags")
 
     return cleaned_tags
 
@@ -63,6 +69,20 @@ class TaskCreate(BaseModel):
         if len(v2) > 200:
             raise ValueError("Title must be 200 characters or fewer")
         return v2
+
+    @field_validator("description")
+    @classmethod
+    def _description_max_length(cls, v):
+        if v is not None and len(v) > 2000:
+            raise ValueError("Description must be 2000 characters or fewer")
+        return v
+
+    @field_validator("assignee")
+    @classmethod
+    def _assignee_max_length(cls, v):
+        if v is not None and len(v) > 100:
+            raise ValueError("Assignee must be 100 characters or fewer")
+        return v
 
     @field_validator("tags")
     @classmethod
@@ -92,6 +112,20 @@ class TaskUpdate(BaseModel):
             raise ValueError("Title must be 200 characters or fewer")
         return v2
 
+    @field_validator("description")
+    @classmethod
+    def _description_max_length(cls, v):
+        if v is not None and len(v) > 2000:
+            raise ValueError("Description must be 2000 characters or fewer")
+        return v
+
+    @field_validator("assignee")
+    @classmethod
+    def _assignee_max_length(cls, v):
+        if v is not None and len(v) > 100:
+            raise ValueError("Assignee must be 100 characters or fewer")
+        return v
+
     @field_validator("tags")
     @classmethod
     def _validate_tags(cls, tags: Optional[list[str]]) -> Optional[list[str]]:
@@ -118,6 +152,8 @@ class CommentCreate(BaseModel):
         v2 = v.strip()
         if not v2:
             raise ValueError("Comment text is required and cannot be blank")
+        if len(v2) > 1000:
+            raise ValueError("Comment text must be 1000 characters or fewer")
         return v2
 
 
