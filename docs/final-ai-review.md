@@ -26,7 +26,7 @@ What I checked:
 Result: no real secrets, credentials, or personal/customer data found in the repo. The only "password/token/secret/credential" mentions are in `docs/ai-playbook.md`, where they're the user's own written non-negotiable rules, not leaked data.
 
 ## One AI output I rejected or corrected
-TODO — to be completed during Part C.
+The AI security review (`docs/security-review.md` row 2, `app/main.py:48`) suggested adding authentication plus per-resource authorization to fix anonymous access to all task/comment routes. I rejected this fix as-is: the final project's ground rules explicitly forbid adding authentication ("No new product features"), and anonymous access is an intentional, already-accepted scope decision for this local/teaching environment, not a defect. Instead of applying the fix, I kept the finding documented as an accepted, course-scoped risk (graded "Valid, fix out of scope") with a note that real authentication would be required before any actual deployment.
 
 ## Three AI usage rules
 1. Never paste:

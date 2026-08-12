@@ -37,4 +37,4 @@ curl http://localhost:8000/health
 ### AI assistance summary
 AI helped draft or review: security fix, CI evidence, Docker verification, docs.
 I verified the work by: running the pytest suite, checking `/health`, manually confirming the frontend in a browser, inspecting the running Docker container, and scanning the repo for secrets.
-One AI suggestion I rejected or corrected: TODO — to be filled in once Part C's "Rejected or corrected AI output" section is completed, so this isn't invented.
+One AI suggestion I rejected or corrected: the security review's suggestion to add authentication to fix anonymous API access — rejected because adding authentication is a new product feature forbidden by this final project's scope rules; see docs/final-ai-review.md.
