@@ -5,7 +5,7 @@ storage (no database) — all task data is lost on restart.
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.11+
 
 ---
 

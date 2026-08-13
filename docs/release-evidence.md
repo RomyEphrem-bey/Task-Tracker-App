@@ -26,4 +26,8 @@
 - No-baked-secrets check: confirmed — `/app` contains only the `app/` code directory (no `.env`, `tests/`, `docs/`); no secret-like files found; container env vars are standard Python/base-image vars only
 
 ## Documentation claim-vs-reality log
-TODO — to be completed during Part B.
+| Claim checked | Evidence used | Result | Change made, if any |
+|---|---|---|---|
+| `task-tracker-api/README.md` said "Prerequisites: Python 3.12+" | Compared against `.github/workflows/ci.yml` (`python-version: '3.11'`) and `Dockerfile` (`FROM python:3.11-slim`) | Mismatch — CI and Docker actually run on 3.11, not 3.12+ | Corrected README prerequisite to "Python 3.11+" |
+| `CLAUDE.md`/README claim: "Direct ToDo → Done ... rejected with 422" | Ran the live app: `POST /tasks` (status `ToDo`) then `PATCH` to `status: Done` | Match — returned `422` with `"Invalid status transition from ToDo to Done..."` | None |
+| `task-tracker-api/README.md` claim: `GET /tasks` supports optional `tag` query filter | Ran the live app: created a task tagged `backend`, called `GET /tasks?tag=backend` | Match — response contained only the matching task | None |

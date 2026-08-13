@@ -19,6 +19,7 @@
 - Priority values are Low, Medium, High.
 - Preserve existing API response shapes unless explicitly asked.
 - Do not add authentication or a database in Module 5.
+- Only change app/ or frontend/ for a small bug fix, security fix, or documentation-supported correction (final project ground rule).
 
 ## Module 5 rules
 
