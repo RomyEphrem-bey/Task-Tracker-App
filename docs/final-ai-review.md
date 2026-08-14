@@ -54,5 +54,10 @@ All limits are enforced exactly as documented — no off-by-one gaps.
 ## One AI output I rejected or corrected
 The AI security review (`docs/security-review.md` row 2, `app/main.py:48`) suggested adding authentication plus per-resource authorization to fix anonymous access to all task/comment routes. I rejected this fix as-is: the final project's ground rules explicitly forbid adding authentication ("No new product features"), and anonymous access is an intentional, already-accepted scope decision for this local/teaching environment, not a defect. Instead of applying the fix, I kept the finding documented as an accepted, course-scoped risk (graded "Valid, fix out of scope") with a note that real authentication would be required before any actual deployment.
 
+## Three AI usage rules
+1. Never paste: credentials, tokens, `.env` values, or real personal/customer data into an AI tool or this repo — confirmed none exist in the repo via the manual security check above.
+2. Always verify: run the actual test suite, hit the live endpoints, or read the exact lines before accepting an AI claim — this is what caught the AI code review's "Wrong" comment (the whitespace-bypass claim) instead of taking it at face value.
+3. Record AI contributions by: grading every AI review comment and security finding in a table (Useful/Noise/Wrong, Valid/False Positive/Noise) with a stated reason, so what AI said and what I decided are both on the record — not just "AI helped."
+
 ## Ownership statement
 I'm comfortable submitting this repo as my own work because I verified AI suggestions against the running app rather than accepting them blindly. I personally tested boundary limits, error handling, and drag-and-drop behavior live, catching issues the AI review missed. I rejected one AI suggestion (adding authentication) because it violated this project's scope rules. Every fix and finding here reflects a decision I made and can explain.

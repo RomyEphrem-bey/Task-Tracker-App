@@ -14,6 +14,7 @@
 - Triggers on both `push` (all branches) and `pull_request` (target: main) — confirmed by reading the workflow file.
 - Latest push run: https://github.com/RomyEphrem-bey/Task-Tracker-App/actions/runs/31593697074 (commit `1ee07ec`, conclusion: success)
 - Latest pull_request run: https://github.com/RomyEphrem-bey/Task-Tracker-App/actions/runs/31591114587 (commit `ac79dc7`, conclusion: success)
+- Re-checked at final submission (2026-08-14): CI is still green on the current branch tip — push runs for commit `e49cba3` ("Complete Part C") and commit `086f867` ("Revise AI playbook (Part D)") both succeeded. Local `pytest -q` re-run at `086f867` also reproduced the baseline exactly: `39 passed, 3 warnings`.
 - Test command used by CI: `pytest -v --tb=short` (working directory: `task-tracker-api`)
 - Shortcut check: no `continue-on-error`, no `|| true`, pytest is not skipped, dependencies are installed before tests run, Python version is pinned (`3.11`) not vague
 - Intentional red-run evidence: N/A — not produced during Module 4 (checked `docs/midcourse/` and Module 5 docs; no deliberate break-test exercise found, only a real accidental CI failure from a missing dependency, later fixed in `1b7ea27`)
@@ -22,6 +23,7 @@
 - Build command: `docker build -t task-tracker:dev task-tracker-api`
 - Run command: `docker run -d --name task-tracker-dev -p 8000:8000 task-tracker:dev`
 - /health check: `200 {"status":"ok","timestamp":"2026-08-12T10:38:12.338362+00:00"}`
+- Re-checked at final submission (2026-08-14): rebuilt the image from scratch (`docker build -t task-tracker:dev task-tracker-api`) at commit `086f867` and ran it (`docker run -d --name task-tracker-dev -p 8000:8000 task-tracker:dev`) — `/health` returned `200 {"status":"ok","timestamp":"2026-08-14T15:12:22.959698+00:00"}`.
 - Non-root check: confirmed — container runs as `app` (uid=1000, gid=1000), verified via `docker exec task-tracker-dev whoami`
 - No-baked-secrets check: confirmed — `/app` contains only the `app/` code directory (no `.env`, `tests/`, `docs/`); no secret-like files found; container env vars are standard Python/base-image vars only
 
