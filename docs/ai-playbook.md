@@ -1,44 +1,29 @@
 # My AI Coding Playbook
 
 ## 1. When I reach for AI first
+Well-defined coding tasks: generating data models, scaffolding CRUD endpoints, adding business rules, refactoring a focused section, drafting tests, or producing a repo-grounded plan or review. AI is useful immediately when the task has clear context, references actual files, sticks to one thing at a time, and states the expected behavior, constraints, and output format precisely enough that I can verify the result right away. What I want out of that first pass is a focused draft I can inspect before moving to the next step — not a finished feature.
 
-> - [Task shapes where AI is my starting point]: ___  Well-defined coding tasks such as generating data models, scaffolding CRUD endpoints, adding business rules, adding business rules, refactoring focused sections, drafting tests,and producing repo-grounded plans or reviews.
-> - [Signals that make AI useful immediately]: ___ The task has clear context, references the actual files, focuses on one task at a time, and specifies exact expected behavior, constraints, and output format so the result can be verified immediately. The appropriate context strategy can be clearly identified for the task.
-> - [What I want AI to produce first]: ___ A focused first draft or implementation for one clearly defined task that I can inspect and verify before moving to the next step.
->
-> Summary: “Ask → Inspect → Run → Test → Refine.” Good prompts reference actual files, focus on one task at a time, specify exact expected behavior, and include constraints about what AI should not change. AI produces the draft; I remain responsible for reviewing and verifying it.
+Summary: **Ask → Inspect → Run → Test → Refine.** Good prompts reference actual files, focus on one task, specify exact expected behavior, and say what AI should *not* change. AI produces the draft; I stay responsible for reviewing and verifying it.
 
----
+## 2. When I do not reach for AI first
+Running verification and reading the result myself: executing the app, hitting endpoints with curl/Swagger, watching browser DevTools, running pytest, doing break tests. AI is ruled out when it doesn't have the real project files, requirements, or evidence in front of it — I gather that context myself rather than let it guess — and always when secrets, credentials, PII, or real customer data would have to touch the conversation to do so.
 
-## 2. When I do not reach for AI
-
-> - [Task shapes I handle without AI]: ___Running verification steps and directly checking observable results, such as executing the application, using curl or Swagger, inspecting browser/DevTools behavior, running pytest, and performing Break Tests.
-> - [Information or contexts that rule AI out]: ___Situations where AI lacks the relevant project files, requirements, evidence, or constraints. In those cases, I first gather and provide the missing context rather than letting AI guess or make unsupported assumptions, or when the information contains secrets, credentials, PII, real customer data, or private production logs.
-> - [Situations where direct investigation comes first]: ___When something fails or behaves unexpectedly, I first reproduce the problem and collect evidence such as status codes, response bodies, console or Network tab messages, diffs, and pytest failure output. I then give that evidence to AI for a focused diagnosis or correction.In addition investigation would comes first when verifying the changes AI has made to confirm the implementation works as expected and that no additional, unrelated, or unrequested changes were made.
-
----
+When something fails, I reproduce it and collect evidence first — status codes, response bodies, console/Network output, diffs, pytest failures — then hand AI that evidence for a diagnosis, rather than describing the symptom from memory. The same applies after AI makes a change: I verify it myself before trusting it, the way I boundary-tested the new length limits at exactly the documented values and one past them, rather than taking the passing test suite as the whole story.
 
 ## 3. My non-negotiables
+AI must not make unrelated or unrequested changes, invent project structure or dependencies, or override established requirements and business rules — my prompts use explicit DO-NOT constraints for exactly this reason. I require observable proof a change works — code review plus the right verification (import check, curl/Swagger, pytest, break test) — never just AI's say-so. And AI-generated work has to preserve the existing structure, conventions, interfaces, and previously verified behavior, changing only what the task actually requires.
 
-> - [Boundary an AI tool must not cross]: ___ AI must not make unrelated or unrequested changes, invent project structure or dependencies, or override established requirements and business rules. The prompt library repeatedly uses DO NOT constraints specifically to prevent changes to the wrong files or parts of the application.
-> - [Evidence or verification I require]: ___I require observable proof that the generated changes work as expected through code review and the appropriate verification method, such as import checks, curl/Swagger checks, pytest, and Break Tests—not simply accepting AI’s claim that the implementation is correct.
-> - [Project constraint AI-generated work must preserve]: ___AI-generated work must preserve the existing project structure, files, conventions, interfaces, and previously verified behavior, while modifying only what the task requires.
-
----
+Never paste: credentials, tokens, PII, customer data, or anything confidential.
 
 ## 4. My review rules
+Every AI-assisted change gets read as a diff: does it match what was asked, does it follow existing conventions, did anything unrequested sneak in. Before I accept it, it has to meet the stated requirements, leave previously working behavior intact, and pass the relevant tests — and I have to be able to explain what the code does, not just that it runs. Anything touching validation, business rules, error handling, or status codes gets extra scrutiny, including edge and failure cases, because that's where a plausible-looking change is most likely to be quietly wrong.
 
-> - [What I check in every AI-assisted change]: ___I review the diff to confirm the change matches the requested behavior, follows the existing project structure and conventions, and does not introduce unrelated or unrequested changes. This reflects the course rule that generated code must be reviewed before it is applied.
-> - [What must be true before I accept a change]: ___The change must meet the stated requirements and constraints, preserve previously working behavior, and pass the relevant verification or tests before I move on. I must understand the AI-generated code I accept and be able to explain what it does.
-> - [What requires additional review or testing]: ___Changes involving validation, business rules, error handling, status codes, or other behavior that could affect multiple parts of the application require additional testing, including edge and failure cases where appropriate. The module specifically verifies validation and business rules and then uses Break Tests to prove that the tests actually detect broken behavior.
-
----
+That last point held up in the final project's AI review mini-log: one AI comment claimed a length check could be bypassed with whitespace padding. It was wrong — re-reading the code showed the check ran against the already-stripped value — but it looked plausible enough that I wouldn't have caught it without going back to the actual lines. Grading each AI comment Useful/Noise/Wrong instead of just applying or ignoring it is now a habit, not just a course exercise.
 
 ## 5. What I am still figuring out
+How to size the task and context I give AI so results are useful without the change becoming too broad to review properly. How well AI actually helps with diagnosis rather than just first-draft generation. And where to redraw the line on how much I hand over at once, based on task shape, risk, and how easily I can check the result.
 
-> - [Workflow question I have not resolved]: ___How to decide the right level of task size and context to give AI so that I get useful results without making the change too broad or difficult to review.
-> - [AI capability or use case I am evaluating]: ___How effectively AI can help diagnose and debug problems from concrete evidence, rather than only generating an initial implementation.
-> - [Boundary or habit I may revise]: ___How much code and context I give AI at once, adjusting it based on the task shape, risk, and how easily I can review and verify the result.
+One concrete instance from the final project: grading the CI-pinning finding (mutable tag vs. SHA-pinned actions) as Noise rather than Valid was a judgment call about *this repo's* actual risk, not a generic security rule — I'm still working out how to make that severity-vs-context call consistently instead of case by case.
 
 ---
 
